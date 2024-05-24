@@ -1,0 +1,20 @@
+.custom-marker {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  background-color: white;
+  border-radius: 20%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1),
+    /* 첫 번째 그림자: 가까운 그림자 */ 0 1px 3px rgba(0, 0, 0, 0.08); /* 두 번째 그림자: 먼 그림자 */
+  overflow: hidden;
+  background-size: cover; /* 이미지가 마커에 맞게 채워지도록 설정 */
+  background-position: center; /* 이미지를 중앙에 위치 */
+}
+
+.leaflet-div-icon {
+  background: none;
+  border: none;
+}
