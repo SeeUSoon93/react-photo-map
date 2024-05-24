@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./Map.css";
-const Map = ({ photos }) => {
+const Map = ({ photos, onMarkerClick }) => {
   // 기본위치를 서울 강남구로 설정
   const [position, setPosition] = useState([37.514575, 127.0495556]);
 
@@ -58,19 +58,8 @@ const Map = ({ photos }) => {
           key={index}
           position={[photo.position.latitude, photo.position.longitude]}
           icon={createIcon(photo)}
-        >
-          <Popup>
-            <strong>{photo.title}</strong>
-            <br />
-            {photo.date}
-            <br />
-            <img
-              src={URL.createObjectURL(photo.file)}
-              alt={photo.title}
-              style={{ width: "100px", height: "100px" }}
-            />
-          </Popup>
-        </Marker>
+          eventHandlers={{ click: () => onMarkerClick(photo) }}
+        ></Marker>
       ))}
     </MapContainer>
   );
