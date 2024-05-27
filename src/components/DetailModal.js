@@ -64,6 +64,12 @@ const DetailModal = ({ open, onClose, photo, onDelete, onEdit }) => {
               size="small"
               variant="outlined"
             />
+            <Chip
+              label={photo.address}
+              sx={{ mb: 1.5 }}
+              size="small"
+              variant="outlined"
+            />
             {isEditing ? (
               <>
                 <TextField

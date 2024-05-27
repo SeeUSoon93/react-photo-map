@@ -21,6 +21,7 @@ const UploadModal = ({ open, onClose, onSave }) => {
   const [position, setPosition] = useState({ latitude: null, longitude: null });
   const [date, setDate] = useState("");
   const [preview, setPreview] = useState(null);
+  const [address, setAddress] = useState("");
 
   useEffect(() => {
     if (file) {
@@ -41,6 +42,15 @@ const UploadModal = ({ open, onClose, onSave }) => {
             const latitude = lat[0] + lat[1] / 60 + lat[2] / 3600;
             const longitude = lon[0] + lon[1] / 60 + lon[2] / 3600;
             setPosition({ latitude: latitude, longitude: longitude });
+          } else if (lat(isNaN) && lon(isNaN)) {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition((position) => {
+                setPosition({
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude,
+                });
+              });
+            }
           } else {
             if (navigator.geolocation) {
               navigator.geolocation.getCurrentPosition((position) => {
@@ -51,6 +61,17 @@ const UploadModal = ({ open, onClose, onSave }) => {
               });
             }
           }
+
+          const fetchAdddress = async () => {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.latitude}&lon=${position.longitude}`
+            );
+            const data = await response.json();
+            if (data && data.display_name) {
+              setAddress(data.display_name);
+            }
+          };
+
           if (exifDate) {
             setDate(exifDate);
           } else {
@@ -62,6 +83,7 @@ const UploadModal = ({ open, onClose, onSave }) => {
     } else {
       setPreview(null);
       setDate("");
+      setAddress("");
     }
   }, [file]);
 
@@ -90,6 +112,7 @@ const UploadModal = ({ open, onClose, onSave }) => {
     setContents("");
     setPosition({ latitude: null, longitude: null });
     setDate("");
+    setAddress("");
     onClose();
   };
   const VisuallyHiddenInput = styled("input")({
@@ -141,6 +164,16 @@ const UploadModal = ({ open, onClose, onSave }) => {
           rows={4}
           value={contents}
           onChange={(e) => setContents(e.target.value)}
+        />
+        <TextField
+          margin="dense"
+          label="위치"
+          type="text"
+          fullWidth
+          value={address}
+          InputProps={{
+            readOnly: true,
+          }}
         />
         <TextField
           margin="dense"
