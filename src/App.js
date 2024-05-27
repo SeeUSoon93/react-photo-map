@@ -32,11 +32,19 @@ const App = () => {
     setSeletedPhoto(null);
   };
 
-  const handleDeletePhoto = (photo) => {
+  const handleDeletePhoto = () => {
     setPhotos(photos.filter((photo) => photo !== selectedPhoto));
     handleCloseDetailModal();
   };
 
+  const handleEditPhoto = (editPhoto) => {
+    setPhotos(
+      photos.map((photo) =>
+        photo === selectedPhoto ? { ...photo, ...editPhoto } : photo
+      )
+    );
+    setSeletedPhoto({ ...selectedPhoto, ...editPhoto });
+  };
   return (
     <div className="App">
       <Header onUploadClick={handleUploadClick} />
@@ -52,6 +60,7 @@ const App = () => {
           onClose={handleCloseDetailModal}
           photo={selectedPhoto}
           onDelete={handleDeletePhoto}
+          onEdit={handleEditPhoto}
         />
       )}
     </div>

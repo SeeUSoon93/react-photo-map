@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
 //Leaflet은 Interactive한 Map을 위한 Javascript 오픈소스 라이브러리 - 지도 위 마커나, 벡터를 그리는 등 다양한 api를 지원
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
