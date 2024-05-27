@@ -3,16 +3,17 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
+  AppBar,
+  Toolbar,
+  IconButton,
   Button,
   TextField,
   List,
   ListItemButton,
   ListItemText,
   CircularProgress,
+  Typography,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import EXIF from "exif-js";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc } from "firebase/firestore";
@@ -20,6 +21,8 @@ import { storage, db } from "../firebase";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
+import DropzoneArea from "./DropzoneArea";
+import CloseIcon from "@mui/icons-material/Close";
 
 const UploadModal = ({ open, onClose, onSave, user }) => {
   const [title, setTitle] = useState("");
@@ -31,6 +34,7 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
   const [address, setAddress] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [fileError, setFileError] = useState(null);
 
   useEffect(() => {
     if (file) {
@@ -80,7 +84,7 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
           }
 
           if (exifDate) {
-            const [date, time] = exifDate.split(" ");
+            const [date] = exifDate.split(" ");
             const [year, month, day] = date.split(":");
             setDate(dayjs(`${year}-${month}-${day}`));
           }
@@ -93,6 +97,20 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
       setAddress("");
     }
   }, [file]);
+
+  const handleDrop = (acceptedFiles) => {
+    if (acceptedFiles.length > 0) {
+      const isImage = acceptedFiles.every((file) =>
+        file.type.startsWith("image/")
+      );
+
+      if (isImage) {
+        setFile(acceptedFiles[0]);
+      } else {
+        setFileError("이미지 파일만 업로드할 수 있습니다.");
+      }
+    }
+  };
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -114,6 +132,7 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
         address,
         userId: user.uid,
         userName: user.displayName,
+        userProfile: user.photoURL,
       };
       const docRef = await addDoc(collection(db, "photos"), photoData);
       const photo = { id: docRef.id, ...photoData }; // Firestore 문서 ID 포함
@@ -132,6 +151,7 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
     setDate(dayjs());
     setAddress("");
     setSearchResults([]);
+    setFileError(null);
     onClose();
   };
 
@@ -160,21 +180,18 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
     setSearchResults([]);
   };
 
-  const VisuallyHiddenInput = styled("input")({
-    clip: "rect(0 0 0 0)",
-    clipPath: "inset(50%)",
-    height: 1,
-    overflow: "hidden",
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    whiteSpace: "nowrap",
-    width: 1,
-  });
-
   return (
     <Dialog open={open} onClose={handleClose}>
-      <DialogTitle>여행 기록하기</DialogTitle>
+      <AppBar position="static">
+        <Toolbar bgcolor={"#236FB8"} color={"white"}>
+          <Typography textAlign={"center"} variant="h6" sx={{ flexGrow: 1 }}>
+            <strong>여행 기록하기</strong>
+          </Typography>
+          <IconButton edge="end" color="inherit" onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        </Toolbar>
+      </AppBar>
       <DialogContent
         sx={{
           overflowY: "scroll",
@@ -196,16 +213,17 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
             style={{ width: "100%", marginTop: "10px" }}
           />
         )}
-        <Button
-          component="label"
-          role={undefined}
-          variant="contained"
-          tabIndex={-1}
-          startIcon={<CloudUploadIcon />}
-        >
-          Upload file
-          <VisuallyHiddenInput type="file" onChange={handleFileChange} />
-        </Button>
+        {fileError && (
+          <Typography variant="body2" color="error">
+            {fileError}
+          </Typography>
+        )}
+        <DropzoneArea
+          onDrop={handleDrop}
+          setFileError={setFileError}
+          type="file"
+          onChange={handleFileChange}
+        />
         <TextField
           margin="dense"
           label="제목"
@@ -248,19 +266,25 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
         )}
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <DatePicker
-            label="날짜"
             value={date}
             onChange={(newValue) => setDate(newValue)}
             sx={{ width: "100%" }}
-            renderInput={(params) => <TextField {...params} margin="dense" />}
+            renderInput={(params) => (
+              <TextField {...params} margin="dense" fullWidth sx={{ mt: 2 }} />
+            )}
           />
         </LocalizationProvider>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} variant="contained" color="success">
+        <Button onClick={handleClose} variant="outlined" color="primary">
           취소
         </Button>
-        <Button variant="contained" color="primary" onClick={handleSave}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSave}
+          disabled={!file || fileError}
+        >
           저장
         </Button>
       </DialogActions>

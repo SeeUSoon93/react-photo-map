@@ -12,6 +12,8 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  query,
+  where,
 } from "firebase/firestore";
 
 import "./App.css";
@@ -22,6 +24,7 @@ const App = () => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [user, setUser] = useState(null);
+  const [view, setView] = useState("all");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -31,17 +34,28 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const loadStoredFiles = async () => {
-      const querySnapshot = await getDocs(collection(db, "photos"));
-      const storedFiles = querySnapshot.docs.map((doc) => ({
+    const loadPhotos = async () => {
+      let q = collection(db, "photos");
+      if (view === "my" && user) {
+        q = query(q, where("userId", "==", user.uid));
+      }
+      const querySnapshot = await getDocs(q);
+      const loadedPhotos = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setPhotos(storedFiles);
+      setPhotos(loadedPhotos);
     };
-    loadStoredFiles();
-  }, []);
 
+    loadPhotos();
+  }, [user, view]);
+  const handleViewMyPics = () => {
+    setView("my");
+  };
+
+  const handleViewAllPics = () => {
+    setView("all");
+  };
   const handleUploadClick = () => {
     setUploadModalOpen(true);
   };
@@ -95,6 +109,8 @@ const App = () => {
         photos={photos}
         onMarkerClick={handleMarkerClick}
         onUploadClick={handleUploadClick}
+        onViewMyPics={handleViewMyPics}
+        onViewAllPics={handleViewAllPics}
         user={user}
       />
       <UploadModal

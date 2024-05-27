@@ -3,14 +3,22 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  Chip,
   Button,
   Card,
   CardMedia,
   CardContent,
   Typography,
   TextField,
+  Avatar,
+  CardHeader,
+  CardActions,
+  AppBar,
+  Toolbar,
+  IconButton,
 } from "@mui/material";
+import PlaceIcon from "@mui/icons-material/Place";
+import CloseIcon from "@mui/icons-material/Close";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 
 const DetailModal = ({ open, onClose, photo, onDelete, onEdit, user }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -31,6 +39,16 @@ const DetailModal = ({ open, onClose, photo, onDelete, onEdit, user }) => {
 
   return (
     <Dialog open={open} onClose={onClose}>
+      <AppBar position="static">
+        <Toolbar bgcolor={"#236FB8"} color={"white"}>
+          <Typography textAlign={"center"} variant="h6" sx={{ flexGrow: 1 }}>
+            <strong>{photo.title}</strong>
+          </Typography>
+          <IconButton edge="end" color="inherit" onClick={onClose}>
+            <CloseIcon />
+          </IconButton>
+        </Toolbar>
+      </AppBar>
       <DialogContent
         sx={{
           overflowY: "scroll",
@@ -53,48 +71,27 @@ const DetailModal = ({ open, onClose, photo, onDelete, onEdit, user }) => {
             image={photo.url}
             alt={photo.title}
           />
+          <CardHeader
+            avatar={<Avatar src="{photo.userProfile}" />}
+            title={photo.userName}
+            subheader={photo.date}
+          />
+          <CardActions>
+            <Button
+              variant=""
+              startIcon={<PlaceIcon />}
+              sx={{
+                textAlign: "left",
+              }}
+            >
+              {photo.address}
+            </Button>
+          </CardActions>
           <CardContent>
             {isEditing ? (
               <>
                 <TextField
                   margin="dense"
-                  label="제목"
-                  type="text"
-                  fullWidth
-                  value={editedTitle}
-                  onChange={(e) => setEditedTitle(e.target.value)}
-                />
-              </>
-            ) : (
-              <>
-                <Typography gutterBottom variant="h5" component="div">
-                  {photo.title}
-                </Typography>
-              </>
-            )}
-            <Chip
-              label={photo.userName}
-              sx={{ mb: 1.5 }}
-              size="small"
-              variant="outlined"
-            />
-            <Chip
-              label={photo.date}
-              sx={{ mb: 1.5 }}
-              size="small"
-              variant="outlined"
-            />
-            <Chip
-              label={photo.address}
-              sx={{ mb: 1.5 }}
-              size="small"
-              variant="outlined"
-            />
-            {isEditing ? (
-              <>
-                <TextField
-                  margin="dense"
-                  label="내용"
                   type="text"
                   fullWidth
                   multiline
@@ -105,12 +102,17 @@ const DetailModal = ({ open, onClose, photo, onDelete, onEdit, user }) => {
               </>
             ) : (
               <>
-                <Typography variant="h6" color="textSecondary">
+                <Typography variant="body1" color="textSecondary">
                   {photo.contents}
                 </Typography>
               </>
             )}
           </CardContent>
+          <CardActions disableSpacing>
+            <IconButton aria-label="add to favorites">
+              <FavoriteIcon />
+            </IconButton>
+          </CardActions>
         </Card>
       </DialogContent>
       <DialogActions>

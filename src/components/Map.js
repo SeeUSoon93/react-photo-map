@@ -4,12 +4,34 @@ import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./Map.css";
-import { Fab } from "@mui/material";
+import {
+  Backdrop,
+  SpeedDial,
+  SpeedDialAction,
+  SpeedDialIcon,
+} from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
-const Map = ({ photos, onMarkerClick, onUploadClick, user }) => {
+import PersonIcon from "@mui/icons-material/Person";
+import CollectionsIcon from "@mui/icons-material/Collections";
+const Map = ({
+  photos,
+  onMarkerClick,
+  onUploadClick,
+  onViewMyPics,
+  onViewAllPics,
+  user,
+}) => {
   // 기본위치를 서울 강남구로 설정
   const [position, setPosition] = useState([37.514575, 127.0495556]);
+  const [open, setOpen] = React.useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
 
+  const actions = [
+    { icon: <EditIcon />, name: "Upload", onClick: onUploadClick },
+    { icon: <PersonIcon />, name: "ViewMypic", onClick: onViewMyPics },
+    { icon: <CollectionsIcon />, name: "ViewAllPic", onClick: onViewAllPics },
+  ];
   // useEffect()는 컴포넌트가 렌더링될 때마다 특정 작업(side Effect)을 실행할 수 있도록 하는 hook
   useEffect(() => {
     // 컴포넌트가 마운트 될때 위치정보 받아오기
@@ -61,15 +83,27 @@ const Map = ({ photos, onMarkerClick, onUploadClick, user }) => {
           ></Marker>
         ))}
       </MapContainer>
+      <Backdrop open={open} />
+
       {user && (
-        <Fab
-          color="primary"
-          aria-label="add"
-          style={{ position: "absolute", top: 10, right: 10 }}
-          onClick={onUploadClick}
+        <SpeedDial
+          ariaLabel="SpeedDial tooltip example"
+          sx={{ position: "absolute", bottom: 16, right: 16 }}
+          icon={<SpeedDialIcon />}
+          onClose={handleClose}
+          onOpen={handleOpen}
+          open={open}
         >
-          <EditIcon />
-        </Fab>
+          {actions.map((action) => (
+            <SpeedDialAction
+              key={action.name}
+              icon={action.icon}
+              tooltipTitle={action.name}
+              tooltipOpen
+              onClick={action.onClick}
+            />
+          ))}
+        </SpeedDial>
       )}
     </div>
   );
