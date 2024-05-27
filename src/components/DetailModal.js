@@ -36,6 +36,7 @@ const DetailModal = ({ open, onClose, photo, onDelete, onEdit }) => {
           <CardMedia
             component="img"
             fullWidth
+            height="100%"
             image={photo.url}
             alt={photo.title}
           />
