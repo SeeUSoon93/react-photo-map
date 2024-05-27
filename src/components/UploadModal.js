@@ -6,6 +6,7 @@ import {
   DialogTitle,
   Button,
   TextField,
+  Autocomplete,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
@@ -13,27 +14,29 @@ import EXIF from "exif-js";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc } from "firebase/firestore";
 import { storage, db } from "../firebase";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
 
 const UploadModal = ({ open, onClose, onSave }) => {
   const [title, setTitle] = useState("");
   const [contents, setContents] = useState("");
   const [file, setFile] = useState(null);
   const [position, setPosition] = useState({ latitude: null, longitude: null });
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(dayjs());
   const [preview, setPreview] = useState(null);
   const [address, setAddress] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [inputValue, setInputValue] = useState("");
 
   useEffect(() => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
 
-      // EXIF 데이터를 읽어 위치 정보 및 날짜 정보 추출
-      EXIF.getData(file, function () {
-        if (EXIF.pretty(this)) {
+        const binaryFile = reader.result;
+        EXIF.getData(file, function () {
           const lat = EXIF.getTag(this, "GPSLatitude");
           const lon = EXIF.getTag(this, "GPSLongitude");
           const exifDate = EXIF.getTag(this, "DateTimeOriginal");
@@ -42,15 +45,17 @@ const UploadModal = ({ open, onClose, onSave }) => {
             const latitude = lat[0] + lat[1] / 60 + lat[2] / 3600;
             const longitude = lon[0] + lon[1] / 60 + lon[2] / 3600;
             setPosition({ latitude: latitude, longitude: longitude });
-          } else if (lat(isNaN) && lon(isNaN)) {
-            if (navigator.geolocation) {
-              navigator.geolocation.getCurrentPosition((position) => {
-                setPosition({
-                  latitude: position.coords.latitude,
-                  longitude: position.coords.longitude,
-                });
-              });
-            }
+
+            const fetchAddress = async () => {
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+              );
+              const data = await response.json();
+              if (data && data.display_name) {
+                setAddress(data.display_name);
+              }
+            };
+            fetchAddress();
           } else {
             if (navigator.geolocation) {
               navigator.geolocation.getCurrentPosition((position) => {
@@ -58,34 +63,35 @@ const UploadModal = ({ open, onClose, onSave }) => {
                   latitude: position.coords.latitude,
                   longitude: position.coords.longitude,
                 });
+
+                const fetchAddress = async () => {
+                  const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.coords.latitude}&lon=${position.coords.longitude}`
+                  );
+                  const data = await response.json();
+                  if (data && data.display_name) {
+                    setAddress(data.display_name);
+                  }
+                };
+                fetchAddress();
               });
             }
           }
 
-          const fetchAdddress = async () => {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.latitude}&lon=${position.longitude}`
-            );
-            const data = await response.json();
-            if (data && data.display_name) {
-              setAddress(data.display_name);
-            }
-          };
-          fetchAdddress();
           if (exifDate) {
-            setDate(exifDate);
-          } else {
-            const today = new Date().toISOString();
-            setDate(today);
+            const [date, time] = exifDate.split(" ");
+            const [year, month, day] = date.split(":");
+            setDate(dayjs(`${year}-${month}-${day}`));
           }
-        }
-      });
+        });
+      };
+      reader.readAsDataURL(file);
     } else {
       setPreview(null);
-      setDate("");
+      setDate(dayjs());
       setAddress("");
     }
-  }, [file, position.latitude, position.longitude]);
+  }, [file]);
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
@@ -111,10 +117,33 @@ const UploadModal = ({ open, onClose, onSave }) => {
     setTitle("");
     setContents("");
     setPosition({ latitude: null, longitude: null });
-    setDate("");
+    setDate(dayjs());
     setAddress("");
     onClose();
   };
+
+  const handleAddressInputChange = async (event, newInputValue) => {
+    setInputValue(newInputValue);
+    if (newInputValue.length > 2) {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${newInputValue}&addressdetails=1&limit=5`
+      );
+      const data = await response.json();
+      setSuggestions(data);
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const handleAddressChange = (event, newValue) => {
+    if (newValue) {
+      const { lat, lon, display_name } = newValue;
+      setPosition({ latitude: parseFloat(lat), longitude: parseFloat(lon) });
+      setAddress(display_name);
+      setInputValue(display_name);
+    }
+  };
+
   const VisuallyHiddenInput = styled("input")({
     clip: "rect(0 0 0 0)",
     clipPath: "inset(50%)",
@@ -126,6 +155,7 @@ const UploadModal = ({ open, onClose, onSave }) => {
     whiteSpace: "nowrap",
     width: 1,
   });
+
   return (
     <Dialog open={open} onClose={hadleClose}>
       <DialogTitle>여행 기록하기</DialogTitle>
@@ -165,26 +195,39 @@ const UploadModal = ({ open, onClose, onSave }) => {
           value={contents}
           onChange={(e) => setContents(e.target.value)}
         />
-        <TextField
-          margin="dense"
-          label="위치"
-          type="text"
-          fullWidth
+        <Autocomplete
+          freeSolo
           value={address}
-          InputProps={{
-            readOnly: true,
-          }}
+          options={suggestions}
+          getOptionLabel={(option) => option.display_name || ""}
+          inputValue={inputValue}
+          onInputChange={handleAddressInputChange}
+          onChange={handleAddressChange}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="위치"
+              margin="dense"
+              fullWidth
+              value={address}
+            />
+          )}
+          renderOption={(props, option) => (
+            <li {...props}>{option.display_name}</li>
+          )}
         />
-        <TextField
-          margin="dense"
-          label="날짜"
-          type="text"
-          fullWidth
-          value={date}
-          InputProps={{
-            readOnly: true,
-          }}
-        />
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            label="날짜"
+            value={date}
+            onChange={(newValue) => setDate(newValue)}
+            fullWidth
+            renderInput={(params) => (
+              <TextField {...params} margin="dense" fullWidth />
+            )}
+            sx={{ width: "100%" }} // 날짜 선택 필드 길이 문제 해결
+          />
+        </LocalizationProvider>
       </DialogContent>
       <DialogActions>
         <Button onClick={hadleClose} variant="contained" color="success">
