@@ -71,7 +71,7 @@ const UploadModal = ({ open, onClose, onSave }) => {
               setAddress(data.display_name);
             }
           };
-
+          fetchAdddress();
           if (exifDate) {
             setDate(exifDate);
           } else {
@@ -85,7 +85,7 @@ const UploadModal = ({ open, onClose, onSave }) => {
       setDate("");
       setAddress("");
     }
-  }, [file]);
+  }, [file, position.latitude, position.longitude]);
 
   const handleFileChange = (event) => {
     const file = event.target.files[0];
