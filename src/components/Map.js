@@ -27,9 +27,7 @@ const Map = ({ photos, onMarkerClick }) => {
 
   const createIcon = (photo) => {
     const iconHtml = `
-    <div class="custom-marker" style="background-image: url('${URL.createObjectURL(
-      photo.file
-    )}')">
+    <div class="custom-marker" style="background-image: url('${photo.url}')">
     </div>
   `;
     return L.divIcon({

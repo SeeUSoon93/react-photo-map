@@ -10,6 +10,9 @@ import {
 import { styled } from "@mui/material/styles";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import EXIF from "exif-js";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { collection, addDoc } from "firebase/firestore";
+import { storage, db } from "../firebase";
 
 const UploadModal = ({ open, onClose, onSave }) => {
   const [title, setTitle] = useState("");
@@ -51,7 +54,7 @@ const UploadModal = ({ open, onClose, onSave }) => {
           if (exifDate) {
             setDate(exifDate);
           } else {
-            const today = new Date();
+            const today = new Date().toISOString();
             setDate(today);
           }
         }
@@ -67,10 +70,17 @@ const UploadModal = ({ open, onClose, onSave }) => {
     setFile(file);
   };
 
-  const handleSave = () => {
-    const photo = { title, contents, file, position, date };
-    onSave(photo);
-    hadleClose();
+  const handleSave = async () => {
+    if (file) {
+      const storageRef = ref(storage, `photos/${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+
+      const photo = { title, contents, url, position, date };
+      await addDoc(collection(db, "photos"), photo);
+      onSave(photo);
+      hadleClose();
+    }
   };
 
   const hadleClose = () => {
