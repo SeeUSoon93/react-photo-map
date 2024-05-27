@@ -43,7 +43,6 @@ const App = () => {
   }, []);
 
   const handleUploadClick = () => {
-    console.log(user.displayName);
     setUploadModalOpen(true);
   };
 

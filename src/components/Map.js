@@ -18,11 +18,8 @@ const Map = ({ photos, onMarkerClick, onUploadClick, user }) => {
         (position) => {
           // 현재 사용자의 위치로 기본위치를 변경
           setPosition([position.coords.latitude, position.coords.longitude]);
-          console.log(position);
         },
-        (error) => {
-          console.log(error);
-        }
+        (error) => {}
       );
     }
   }, []); // 빈 배열을 의존성 배열로 설정 - 마운트, 언마운트 시에만 실행

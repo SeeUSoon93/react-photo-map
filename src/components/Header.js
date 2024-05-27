@@ -10,18 +10,13 @@ const Header = ({ user, setUser }) => {
     try {
       const result = await signInWithPopup(auth, provider);
       setUser(result.user);
-      console.log(result.user);
-    } catch (error) {
-      console.error(error);
-    }
+    } catch (error) {}
   };
   const handleLogout = async () => {
     try {
       await signOut(auth);
       setUser(null);
-    } catch (error) {
-      console.error(error);
-    }
+    } catch (error) {}
   };
   return (
     <Box sx={{ flexGrow: 1 }}>
