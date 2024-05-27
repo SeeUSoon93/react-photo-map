@@ -98,7 +98,7 @@ const UploadModal = ({ open, onClose, onSave }) => {
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
 
-      const photo = { title, contents, url, position, date };
+      const photo = { title, contents, url, position, date, address };
       await addDoc(collection(db, "photos"), photo);
       onSave(photo);
       hadleClose();
