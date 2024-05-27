@@ -12,7 +12,7 @@ import {
   TextField,
 } from "@mui/material";
 
-const DetailModal = ({ open, onClose, photo, onDelete, onEdit }) => {
+const DetailModal = ({ open, onClose, photo, onDelete, onEdit, user }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(photo.title);
   const [editedContents, setEditedContents] = useState(photo.contents);
@@ -31,7 +31,20 @@ const DetailModal = ({ open, onClose, photo, onDelete, onEdit }) => {
 
   return (
     <Dialog open={open} onClose={onClose}>
-      <DialogContent>
+      <DialogContent
+        sx={{
+          overflowY: "scroll",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+        }}
+      >
+        <style>
+          {`
+      .MuiDialogContent-root::-webkit-scrollbar {
+        display: none;
+      }
+    `}
+        </style>
         <Card>
           <CardMedia
             component="img"
@@ -59,6 +72,12 @@ const DetailModal = ({ open, onClose, photo, onDelete, onEdit }) => {
                 </Typography>
               </>
             )}
+            <Chip
+              label={photo.userName}
+              sx={{ mb: 1.5 }}
+              size="small"
+              variant="outlined"
+            />
             <Chip
               label={photo.date}
               sx={{ mb: 1.5 }}
@@ -114,16 +133,20 @@ const DetailModal = ({ open, onClose, photo, onDelete, onEdit }) => {
           </>
         ) : (
           <>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => setIsEditing(true)}
-            >
-              수정
-            </Button>
-            <Button variant="contained" color="success" onClick={onDelete}>
-              삭제
-            </Button>
+            {user && user.uid === photo.userId && (
+              <>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => setIsEditing(true)}
+                >
+                  수정
+                </Button>
+                <Button variant="contained" color="success" onClick={onDelete}>
+                  삭제
+                </Button>
+              </>
+            )}
           </>
         )}
       </DialogActions>

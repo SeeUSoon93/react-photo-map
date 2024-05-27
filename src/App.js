@@ -4,7 +4,8 @@ import Map from "./components/Map";
 import UploadModal from "./components/UploadModal";
 import DetailModal from "./components/DetailModal";
 
-import { storage, db } from "./firebase";
+import { auth, db } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
   getDocs,
@@ -18,8 +19,16 @@ import "./App.css";
 const App = () => {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [selectedPhoto, setSeletedPhoto] = useState(null);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [photos, setPhotos] = useState([]);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const loadStoredFiles = async () => {
@@ -34,6 +43,7 @@ const App = () => {
   }, []);
 
   const handleUploadClick = () => {
+    console.log(user.displayName);
     setUploadModalOpen(true);
   };
 
@@ -42,43 +52,57 @@ const App = () => {
   };
 
   const handleSavePhoto = async (photo) => {
-    setPhotos([...photos, photo]);
+    setPhotos((prevPhotos) => [...prevPhotos, photo]);
   };
 
-  const hadleMarkerClick = (photo) => {
+  const handleMarkerClick = (photo) => {
     setDetailModalOpen(true);
-    setSeletedPhoto(photo);
+    setSelectedPhoto(photo);
   };
+
   const handleCloseDetailModal = () => {
     setDetailModalOpen(false);
-    setSeletedPhoto(null);
+    setSelectedPhoto(null);
   };
 
   const handleDeletePhoto = async () => {
-    await deleteDoc(doc(db, "photos", selectedPhoto.id));
-    setPhotos(photos.filter((photo) => photo.id !== selectedPhoto.id));
-    handleCloseDetailModal();
+    if (selectedPhoto && selectedPhoto.id) {
+      await deleteDoc(doc(db, "photos", selectedPhoto.id));
+      setPhotos((prevPhotos) =>
+        prevPhotos.filter((photo) => photo.id !== selectedPhoto.id)
+      );
+      handleCloseDetailModal();
+    }
   };
 
   const handleEditPhoto = async (editPhoto) => {
-    const updatePhoto = { ...selectedPhoto, ...editPhoto };
-    const docRef = doc(db, "photos", selectedPhoto.id);
-    await updateDoc(docRef, updatePhoto);
-    setPhotos(
-      photos.map((photo) =>
-        photo.id === selectedPhoto.id ? updatePhoto : photo
-      )
-    );
-    setSeletedPhoto(updatePhoto);
+    if (selectedPhoto && selectedPhoto.id) {
+      const updatedPhoto = { ...selectedPhoto, ...editPhoto };
+      const docRef = doc(db, "photos", selectedPhoto.id);
+      await updateDoc(docRef, updatedPhoto);
+      setPhotos((prevPhotos) =>
+        prevPhotos.map((photo) =>
+          photo.id === selectedPhoto.id ? updatedPhoto : photo
+        )
+      );
+      setSelectedPhoto(updatedPhoto);
+    }
   };
+
   return (
     <div className="App">
-      <Header onUploadClick={handleUploadClick} />
-      <Map photos={photos} onMarkerClick={hadleMarkerClick} />
+      <Header user={user} setUser={setUser} />
+      <Map
+        photos={photos}
+        onMarkerClick={handleMarkerClick}
+        onUploadClick={handleUploadClick}
+        user={user}
+      />
       <UploadModal
         open={uploadModalOpen}
         onClose={handleCloseUploadModal}
         onSave={handleSavePhoto}
+        user={user}
       />
       {selectedPhoto && (
         <DetailModal
@@ -87,6 +111,7 @@ const App = () => {
           photo={selectedPhoto}
           onDelete={handleDeletePhoto}
           onEdit={handleEditPhoto}
+          user={user}
         />
       )}
     </div>

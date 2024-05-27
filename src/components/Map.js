@@ -4,7 +4,9 @@ import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./Map.css";
-const Map = ({ photos, onMarkerClick }) => {
+import { Fab } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+const Map = ({ photos, onMarkerClick, onUploadClick, user }) => {
   // 기본위치를 서울 강남구로 설정
   const [position, setPosition] = useState([37.514575, 127.0495556]);
 
@@ -40,26 +42,39 @@ const Map = ({ photos, onMarkerClick }) => {
   };
 
   return (
-    <MapContainer
-      center={position}
-      zoom={7}
-      style={{ height: "100vh", width: "100%" }}
-      key={position.toString()} //기본위치를 설정했었기 떄문에, 위치가 변경되면 다시 컴포넌트를 렌더링하도록 함
-    >
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        subdomains={["a", "b", "c", "d"]}
-      />
-      {photos.map((photo, index) => (
-        <Marker
-          key={index}
-          position={[photo.position.latitude, photo.position.longitude]}
-          icon={createIcon(photo)}
-          eventHandlers={{ click: () => onMarkerClick(photo) }}
-        ></Marker>
-      ))}
-    </MapContainer>
+    <div style={{ position: "relative" }}>
+      <MapContainer
+        center={position}
+        zoom={7}
+        style={{ height: "100vh", width: "100%" }}
+        key={position.toString()} //기본위치를 설정했었기 떄문에, 위치가 변경되면 다시 컴포넌트를 렌더링하도록 함
+        zoomControl={false}
+      >
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          subdomains={["a", "b", "c", "d"]}
+        />
+        {photos.map((photo, index) => (
+          <Marker
+            key={index}
+            position={[photo.position.latitude, photo.position.longitude]}
+            icon={createIcon(photo)}
+            eventHandlers={{ click: () => onMarkerClick(photo) }}
+          ></Marker>
+        ))}
+      </MapContainer>
+      {user && (
+        <Fab
+          color="primary"
+          aria-label="add"
+          style={{ position: "absolute", top: 10, right: 10 }}
+          onClick={onUploadClick}
+        >
+          <EditIcon />
+        </Fab>
+      )}
+    </div>
   );
 };
 

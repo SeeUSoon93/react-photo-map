@@ -2,6 +2,7 @@
   {
     "origin": [
       "http://localhost:3000",
+      "https://yugi-421113.firebaseapp.com",
       "https://seeusoon93.github.io/react-photo-map/"
     ],
     "method": ["GET", "POST", "PUT"],

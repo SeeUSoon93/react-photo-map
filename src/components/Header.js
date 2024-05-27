@@ -1,19 +1,48 @@
 import React from "react";
-import { AppBar, Box, Toolbar, Typography, Fab } from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import logo from "../logo.svg";
+import { AppBar, Box, Toolbar, Typography, Button } from "@mui/material";
 
-const Header = ({ onUploadClick }) => {
+import logo from "../logo.svg";
+import { auth, provider } from "../firebase";
+import { signInWithPopup, signOut } from "firebase/auth";
+
+const Header = ({ user, setUser }) => {
+  const handleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      setUser(result.user);
+      console.log(result.user);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error(error);
+    }
+  };
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            <img src={logo} className="App-logo" alt="logo" height="50px" />
+            <img src={logo} className="App-logo" alt="logo" height="40px" />
           </Typography>
-          <Fab size="small" variant="contained" onClick={onUploadClick}>
-            <EditIcon />
-          </Fab>
+          {user ? (
+            <>
+              <Button color="inherit" onClick={handleLogout}>
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button color="inherit" onClick={handleLogin}>
+                Login With Google
+              </Button>
+            </>
+          )}
         </Toolbar>
       </AppBar>
     </Box>

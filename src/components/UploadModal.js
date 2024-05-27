@@ -6,7 +6,10 @@ import {
   DialogTitle,
   Button,
   TextField,
-  Autocomplete,
+  List,
+  ListItemButton,
+  ListItemText,
+  CircularProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
@@ -18,7 +21,7 @@ import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 
-const UploadModal = ({ open, onClose, onSave }) => {
+const UploadModal = ({ open, onClose, onSave, user }) => {
   const [title, setTitle] = useState("");
   const [contents, setContents] = useState("");
   const [file, setFile] = useState(null);
@@ -26,16 +29,14 @@ const UploadModal = ({ open, onClose, onSave }) => {
   const [date, setDate] = useState(dayjs());
   const [preview, setPreview] = useState(null);
   const [address, setAddress] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [inputValue, setInputValue] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result);
-
-        const binaryFile = reader.result;
         EXIF.getData(file, function () {
           const lat = EXIF.getTag(this, "GPSLatitude");
           const lon = EXIF.getTag(this, "GPSLongitude");
@@ -104,14 +105,25 @@ const UploadModal = ({ open, onClose, onSave }) => {
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
 
-      const photo = { title, contents, url, position, date, address };
-      await addDoc(collection(db, "photos"), photo);
+      const photoData = {
+        title,
+        contents,
+        url,
+        position,
+        date: date.toString(),
+        address,
+        userId: user.uid,
+        userName: user.displayName,
+      };
+      const docRef = await addDoc(collection(db, "photos"), photoData);
+      const photo = { id: docRef.id, ...photoData }; // Firestore 문서 ID 포함
+
       onSave(photo);
-      hadleClose();
+      handleClose();
     }
   };
 
-  const hadleClose = () => {
+  const handleClose = () => {
     setFile(null);
     setPreview(null);
     setTitle("");
@@ -119,29 +131,33 @@ const UploadModal = ({ open, onClose, onSave }) => {
     setPosition({ latitude: null, longitude: null });
     setDate(dayjs());
     setAddress("");
+    setSearchResults([]);
     onClose();
   };
 
-  const handleAddressInputChange = async (event, newInputValue) => {
-    setInputValue(newInputValue);
-    if (newInputValue.length > 2) {
+  const handleAddressChange = async (event) => {
+    setAddress(event.target.value);
+  };
+
+  const handleAddressKeyDown = async (event) => {
+    if (event.key === "Enter") {
+      setLoading(true);
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${newInputValue}&addressdetails=1&limit=5`
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${address}`
       );
       const data = await response.json();
-      setSuggestions(data);
-    } else {
-      setSuggestions([]);
+      setSearchResults(data);
+      setLoading(false);
     }
   };
 
-  const handleAddressChange = (event, newValue) => {
-    if (newValue) {
-      const { lat, lon, display_name } = newValue;
-      setPosition({ latitude: parseFloat(lat), longitude: parseFloat(lon) });
-      setAddress(display_name);
-      setInputValue(display_name);
-    }
+  const handleAddressSelect = (result) => {
+    setAddress(result.display_name);
+    setPosition({
+      latitude: result.lat,
+      longitude: result.lon,
+    });
+    setSearchResults([]);
   };
 
   const VisuallyHiddenInput = styled("input")({
@@ -157,9 +173,22 @@ const UploadModal = ({ open, onClose, onSave }) => {
   });
 
   return (
-    <Dialog open={open} onClose={hadleClose}>
+    <Dialog open={open} onClose={handleClose}>
       <DialogTitle>여행 기록하기</DialogTitle>
-      <DialogContent>
+      <DialogContent
+        sx={{
+          overflowY: "scroll",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+        }}
+      >
+        <style>
+          {`
+      .MuiDialogContent-root::-webkit-scrollbar {
+        display: none;
+      }
+    `}
+        </style>
         {preview && (
           <img
             src={preview}
@@ -195,42 +224,40 @@ const UploadModal = ({ open, onClose, onSave }) => {
           value={contents}
           onChange={(e) => setContents(e.target.value)}
         />
-        <Autocomplete
-          freeSolo
+        <TextField
+          margin="dense"
+          label="위치"
+          type="text"
+          fullWidth
           value={address}
-          options={suggestions}
-          getOptionLabel={(option) => option.display_name || ""}
-          inputValue={inputValue}
-          onInputChange={handleAddressInputChange}
           onChange={handleAddressChange}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="위치"
-              margin="dense"
-              fullWidth
-              value={address}
-            />
-          )}
-          renderOption={(props, option) => (
-            <li {...props}>{option.display_name}</li>
-          )}
+          onKeyDown={handleAddressKeyDown}
         />
+        {loading && <CircularProgress />}
+        {searchResults.length > 0 && (
+          <List>
+            {searchResults.slice(0, 5).map((result) => (
+              <ListItemButton
+                key={result.place_id}
+                onClick={() => handleAddressSelect(result)}
+              >
+                <ListItemText primary={result.display_name} />
+              </ListItemButton>
+            ))}
+          </List>
+        )}
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <DatePicker
             label="날짜"
             value={date}
             onChange={(newValue) => setDate(newValue)}
-            fullWidth
-            renderInput={(params) => (
-              <TextField {...params} margin="dense" fullWidth />
-            )}
-            sx={{ width: "100%" }} // 날짜 선택 필드 길이 문제 해결
+            sx={{ width: "100%" }}
+            renderInput={(params) => <TextField {...params} margin="dense" />}
           />
         </LocalizationProvider>
       </DialogContent>
       <DialogActions>
-        <Button onClick={hadleClose} variant="contained" color="success">
+        <Button onClick={handleClose} variant="contained" color="success">
           취소
         </Button>
         <Button variant="contained" color="primary" onClick={handleSave}>

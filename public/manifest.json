@@ -1,9 +1,9 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Travel Snap",
+  "name": "Travel Snap - 여행을 기록하다",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "favicon1.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     },
@@ -20,6 +20,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#236FB8",
+  "background_color": "#236FB8"
 }
