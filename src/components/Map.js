@@ -1,18 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-markercluster";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import "./Map.css";
-
-import {
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon,
-  Badge,
-} from "@mui/material";
+import { SpeedDial, SpeedDialAction, SpeedDialIcon } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import PersonIcon from "@mui/icons-material/Person";
 import CollectionsIcon from "@mui/icons-material/Collections";
@@ -93,6 +87,29 @@ const Map = ({
       iconAnchor: [25, 50],
     });
   };
+
+  // Custom component to handle marker clusters
+  const MarkerClusterComponent = ({ children }) => {
+    const map = useMap();
+
+    useEffect(() => {
+      const markerClusterGroup = L.markerClusterGroup({
+        iconCreateFunction: createClusterCustomIcon,
+      });
+      map.addLayer(markerClusterGroup);
+
+      children.forEach((child) => {
+        markerClusterGroup.addLayer(child);
+      });
+
+      return () => {
+        map.removeLayer(markerClusterGroup);
+      };
+    }, [map, children]);
+
+    return null;
+  };
+
   return (
     <div style={{ position: "relative" }}>
       <MapContainer
@@ -107,22 +124,18 @@ const Map = ({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           subdomains={["a", "b", "c", "d"]}
         />
-        <MarkerClusterGroup iconCreateFunction={createClusterCustomIcon}>
+        <MarkerClusterComponent>
           {photos.map((photo, index) => {
             const [adjustedLat, adjustedLon] = adjustPosition(
               photo.position.latitude,
               photo.position.longitude
             );
-            return (
-              <Marker
-                key={index}
-                position={[adjustedLat, adjustedLon]}
-                icon={createIcon(photo)}
-                eventHandlers={{ click: () => onMarkerClick(photo) }}
-              />
-            );
+            const marker = L.marker([adjustedLat, adjustedLon], {
+              icon: createIcon(photo),
+            }).on("click", () => onMarkerClick(photo));
+            return marker;
           })}
-        </MarkerClusterGroup>
+        </MarkerClusterComponent>
       </MapContainer>
       {user && (
         <SpeedDial

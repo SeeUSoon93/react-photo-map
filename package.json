@@ -6,6 +6,9 @@
   "dependencies": {
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
+    "@firebase/app": "^0.10.5",
+    "@firebase/auth": "^1.7.4",
+    "@firebase/firestore": "^4.6.3",
     "@mui/icons-material": "^5.15.18",
     "@mui/material": "^5.15.18",
     "@mui/x-date-pickers": "^6.20.0",
@@ -20,7 +23,6 @@
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.2.3",
     "react-leaflet": "^4.2.1",
-    "react-leaflet-markercluster": "^3.0.0-rc1",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
