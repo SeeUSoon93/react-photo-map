@@ -25,7 +25,7 @@ const ListModal = ({ photos, open, onClose, onDetail }) => {
       </IconButton>
       <DialogContent>
         <ImageList variant="masonry" cols={3} gap={8}>
-          {photos.map((photo, index) => (
+          {shuffledPhotos.map((photo, index) => (
             <ImageListItem key={index} onClick={() => onDetail(photo)}>
               <img
                 srcSet={`${photo.url}?w=248&fit=crop&auto=format&dpr=2 2x`}
