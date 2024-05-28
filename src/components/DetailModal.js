@@ -49,20 +49,7 @@ const DetailModal = ({ open, onClose, photo, onDelete, onEdit, user }) => {
           </IconButton>
         </Toolbar>
       </AppBar>
-      <DialogContent
-        sx={{
-          overflowY: "scroll",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-        }}
-      >
-        <style>
-          {`
-      .MuiDialogContent-root::-webkit-scrollbar {
-        display: none;
-      }
-    `}
-        </style>
+      <DialogContent>
         <Card>
           <CardMedia
             component="img"
@@ -72,7 +59,7 @@ const DetailModal = ({ open, onClose, photo, onDelete, onEdit, user }) => {
             alt={photo.title}
           />
           <CardHeader
-            avatar={<Avatar src="{photo.userProfile}" />}
+            avatar={<Avatar src={photo.userProfile} />}
             title={photo.userName}
             subheader={photo.date}
           />

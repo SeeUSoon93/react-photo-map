@@ -18,10 +18,12 @@ import EXIF from "exif-js";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc } from "firebase/firestore";
 import { storage, db } from "../firebase";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { readAndCompressImage } from "browser-image-resizer";
 import dayjs from "dayjs";
 import DropzoneArea from "./DropzoneArea";
+
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CloseIcon from "@mui/icons-material/Close";
 
 const UploadModal = ({ open, onClose, onSave, user }) => {
@@ -35,6 +37,7 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fileError, setFileError] = useState(null);
+  const [positionError, setPositionError] = useState(null);
 
   useEffect(() => {
     if (file) {
@@ -49,7 +52,15 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
           if (lat && lon) {
             const latitude = lat[0] + lat[1] / 60 + lat[2] / 3600;
             const longitude = lon[0] + lon[1] / 60 + lon[2] / 3600;
-            setPosition({ latitude: latitude, longitude: longitude });
+
+            if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+              setPosition({ latitude: latitude, longitude: longitude });
+              setPositionError(null);
+            } else {
+              setPositionError(
+                "위치 정보가 올바르지 않습니다. 다시 시도해 주세요."
+              );
+            }
 
             const fetchAddress = async () => {
               const response = await fetch(
@@ -64,14 +75,19 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
           } else {
             if (navigator.geolocation) {
               navigator.geolocation.getCurrentPosition((position) => {
-                setPosition({
-                  latitude: position.coords.latitude,
-                  longitude: position.coords.longitude,
-                });
+                const { latitude, longitude } = position.coords;
+                if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+                  setPosition({ latitude: latitude, longitude: longitude });
+                  setPositionError(null);
+                } else {
+                  setPositionError(
+                    "위치 정보가 올바르지 않습니다. 다시 시도해 주세요."
+                  );
+                }
 
                 const fetchAddress = async () => {
                   const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.coords.latitude}&lon=${position.coords.longitude}`
+                    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
                   );
                   const data = await response.json();
                   if (data && data.display_name) {
@@ -123,16 +139,44 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
 
+      const thumbnailConfig = {
+        maxWidth: 200,
+        maxHeight: 200,
+        autoRotate: true,
+        debug: true,
+      };
+      const thumbnailBlob = await readAndCompressImage(file, thumbnailConfig);
+      const thumbStorageRef = ref(storage, `thumbnails/${file.name}`);
+      await uploadBytes(thumbStorageRef, thumbnailBlob);
+      const thumbUrl = await getDownloadURL(thumbStorageRef);
+
+      let userProfileUrl = "";
+      if (user.photoURL) {
+        try {
+          const response = await fetch(user.photoURL);
+          const userProfileBlob = await response.blob();
+          const userProfileStorageRef = ref(
+            storage,
+            `users/${user.uid}/profile.jpg`
+          );
+          await uploadBytes(userProfileStorageRef, userProfileBlob);
+          userProfileUrl = await getDownloadURL(userProfileStorageRef);
+        } catch (error) {
+          console.error("Error uploading user profile image:", error);
+        }
+      }
+
       const photoData = {
         title,
         contents,
         url,
+        thumbUrl,
         position,
         date: date.toString(),
         address,
         userId: user.uid,
         userName: user.displayName,
-        userProfile: user.photoURL,
+        userProfile: userProfileUrl,
       };
       const docRef = await addDoc(collection(db, "photos"), photoData);
       const photo = { id: docRef.id, ...photoData }; // Firestore 문서 ID 포함
@@ -152,6 +196,7 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
     setAddress("");
     setSearchResults([]);
     setFileError(null);
+    setPositionError(null);
     onClose();
   };
 
@@ -173,10 +218,14 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
 
   const handleAddressSelect = (result) => {
     setAddress(result.display_name);
-    setPosition({
-      latitude: result.lat,
-      longitude: result.lon,
-    });
+    const latitude = parseFloat(result.lat);
+    const longitude = parseFloat(result.lon);
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      setPosition({ latitude, longitude });
+      setPositionError(null);
+    } else {
+      setPositionError("위치 정보가 올바르지 않습니다. 다시 시도해 주세요.");
+    }
     setSearchResults([]);
   };
 
@@ -192,20 +241,7 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
           </IconButton>
         </Toolbar>
       </AppBar>
-      <DialogContent
-        sx={{
-          overflowY: "scroll",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-        }}
-      >
-        <style>
-          {`
-      .MuiDialogContent-root::-webkit-scrollbar {
-        display: none;
-      }
-    `}
-        </style>
+      <DialogContent>
         {preview && (
           <img
             src={preview}
@@ -216,6 +252,11 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
         {fileError && (
           <Typography variant="body2" color="error">
             {fileError}
+          </Typography>
+        )}
+        {positionError && (
+          <Typography variant="body2" color="error">
+            {positionError}
           </Typography>
         )}
         <DropzoneArea
@@ -283,7 +324,7 @@ const UploadModal = ({ open, onClose, onSave, user }) => {
           variant="contained"
           color="primary"
           onClick={handleSave}
-          disabled={!file || fileError}
+          disabled={!file || fileError || positionError}
         >
           저장
         </Button>

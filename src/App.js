@@ -3,7 +3,7 @@ import Header from "./components/Header";
 import Map from "./components/Map";
 import UploadModal from "./components/UploadModal";
 import DetailModal from "./components/DetailModal";
-
+import ListModal from "./components/ListModal";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -15,13 +15,13 @@ import {
   query,
   where,
 } from "firebase/firestore";
-
 import "./App.css";
 
 const App = () => {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [listModalOpen, setListModalOpen] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [user, setUser] = useState(null);
   const [view, setView] = useState("all");
@@ -49,12 +49,20 @@ const App = () => {
 
     loadPhotos();
   }, [user, view]);
+
   const handleViewMyPics = () => {
     setView("my");
   };
 
   const handleViewAllPics = () => {
     setView("all");
+  };
+
+  const handleViewListModal = () => {
+    setListModalOpen(true);
+  };
+  const handleCloseListModal = () => {
+    setListModalOpen(false);
   };
   const handleUploadClick = () => {
     setUploadModalOpen(true);
@@ -105,13 +113,21 @@ const App = () => {
   return (
     <div className="App">
       <Header user={user} setUser={setUser} />
+
       <Map
         photos={photos}
         onMarkerClick={handleMarkerClick}
         onUploadClick={handleUploadClick}
         onViewMyPics={handleViewMyPics}
         onViewAllPics={handleViewAllPics}
+        onViewListModal={handleViewListModal}
         user={user}
+      />
+      <ListModal
+        photos={photos}
+        open={listModalOpen}
+        onClose={handleCloseListModal}
+        onDetail={handleMarkerClick}
       />
       <UploadModal
         open={uploadModalOpen}
