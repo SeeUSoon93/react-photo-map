@@ -16,7 +16,7 @@ import {
   where,
 } from "firebase/firestore";
 import "./App.css";
-
+import { CircularProgress } from "@mui/material";
 const App = () => {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -25,6 +25,8 @@ const App = () => {
   const [photos, setPhotos] = useState([]);
   const [user, setUser] = useState(null);
   const [view, setView] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -35,20 +37,30 @@ const App = () => {
 
   useEffect(() => {
     const loadPhotos = async () => {
+      setLoading(true);
       let q = collection(db, "photos");
       if (view === "my" && user) {
         q = query(q, where("userId", "==", user.uid));
       }
       const querySnapshot = await getDocs(q);
-      const loadedPhotos = querySnapshot.docs.map((doc) => ({
+      let loadedPhotos = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
+
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase();
+        loadedPhotos = loadedPhotos.filter((photo) =>
+          photo.address.toLowerCase().includes(searchLower)
+        );
+      }
+
       setPhotos(loadedPhotos);
+      setLoading(false);
     };
 
     loadPhotos();
-  }, [user, view]);
+  }, [user, view, searchQuery]);
 
   const handleViewMyPics = () => {
     setView("my");
@@ -112,38 +124,55 @@ const App = () => {
 
   return (
     <div className="App">
-      <Header user={user} setUser={setUser} />
-
-      <Map
-        photos={photos}
-        onMarkerClick={handleMarkerClick}
-        onUploadClick={handleUploadClick}
-        onViewMyPics={handleViewMyPics}
-        onViewAllPics={handleViewAllPics}
-        onViewListModal={handleViewListModal}
-        user={user}
-      />
-      <ListModal
-        photos={photos}
-        open={listModalOpen}
-        onClose={handleCloseListModal}
-        onDetail={handleMarkerClick}
-      />
-      <UploadModal
-        open={uploadModalOpen}
-        onClose={handleCloseUploadModal}
-        onSave={handleSavePhoto}
-        user={user}
-      />
-      {selectedPhoto && (
-        <DetailModal
-          open={detailModalOpen}
-          onClose={handleCloseDetailModal}
-          photo={selectedPhoto}
-          onDelete={handleDeletePhoto}
-          onEdit={handleEditPhoto}
+      <Header user={user} setUser={setUser} setSearchQuery={setSearchQuery} />
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <Map
+          photos={photos}
+          onMarkerClick={handleMarkerClick}
+          onUploadClick={handleUploadClick}
+          onViewMyPics={handleViewMyPics}
+          onViewAllPics={handleViewAllPics}
+          onViewListModal={handleViewListModal}
           user={user}
         />
+      )}
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <ListModal
+          photos={photos}
+          open={listModalOpen}
+          onClose={handleCloseListModal}
+          onDetail={handleMarkerClick}
+        />
+      )}
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <UploadModal
+          open={uploadModalOpen}
+          onClose={handleCloseUploadModal}
+          onSave={handleSavePhoto}
+          user={user}
+        />
+      )}
+      {loading ? (
+        <CircularProgress />
+      ) : (
+        <>
+          {selectedPhoto && (
+            <DetailModal
+              open={detailModalOpen}
+              onClose={handleCloseDetailModal}
+              photo={selectedPhoto}
+              onDelete={handleDeletePhoto}
+              onEdit={handleEditPhoto}
+              user={user}
+            />
+          )}
+        </>
       )}
     </div>
   );
