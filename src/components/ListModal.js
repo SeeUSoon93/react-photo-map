@@ -13,7 +13,7 @@ const ListModal = ({ photos, open, onClose, onDetail }) => {
 
   useEffect(() => {
     if (photos.length > 0) {
-      const shuffled = photos.sort(() => Math.random() - 0.5);
+      const shuffled = [...photos].sort(() => Math.random() - 0.5);
       setShuffledPhotos(shuffled);
     }
   }, [photos]);
@@ -25,8 +25,8 @@ const ListModal = ({ photos, open, onClose, onDetail }) => {
       </IconButton>
       <DialogContent>
         <ImageList variant="masonry" cols={3} gap={8}>
-          {shuffledPhotos.map((photo, index) => (
-            <ImageListItem key={index} onClick={() => onDetail(photo)}>
+          {shuffledPhotos.map((photo) => (
+            <ImageListItem key={photo.url} onClick={() => onDetail(photo)}>
               <img
                 srcSet={`${photo.url}?w=248&fit=crop&auto=format&dpr=2 2x`}
                 src={`${photo.url}?w=248&fit=crop&auto=format`}
